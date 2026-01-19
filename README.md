@@ -86,7 +86,7 @@ The calculator provides:
 
 ### Chebyshev Constraints
 
-Chebyshev filters with equal source/load impedances require an **odd** number of resonators (3, 5, 7, or 9). Use Butterworth for even resonator counts.
+Chebyshev filters with equal source/load impedances require an **odd** number of resonators (3, 5, 7, or 9). This is a mathematical property of Chebyshev Type I prototype g-values: even orders produce unequal termination impedances (g₀ ≠ g_{n+1}), requiring impedance transformers for 50Ω in/out systems. Use Butterworth for even resonator counts, which supports any order with equal terminations.
 
 ### Component Q
 

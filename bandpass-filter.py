@@ -91,7 +91,9 @@ for acceptable insertion loss. Chebyshev filters are more sensitive to component
 Q than Butterworth.
 
 Important: Chebyshev filters with equal source/load impedances require an ODD
-number of resonators (3, 5, 7, or 9). For even resonator counts, use Butterworth.
+number of resonators (3, 5, 7, or 9). This is due to prototype g-value mathematics:
+even-order Chebyshev produces unequal termination impedances, requiring impedance
+transformers for matched 50-ohm systems. For even resonator counts, use Butterworth.
 
 Choose Chebyshev when you need sharp rejection of nearby interfering signals and
 can tolerate small passband ripple.

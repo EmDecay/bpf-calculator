@@ -71,9 +71,12 @@ def get_chebyshev_g_values(n: int, ripple_db: float) -> list[float]:
     """
     Get Chebyshev prototype g-values from lookup table.
 
-    Note: Chebyshev filters with equal source/load impedances require
-    ODD resonator counts (3, 5, 7, 9). Even orders produce unequal
-    terminations. Use Butterworth for even resonator counts.
+    Note: Chebyshev Type I filters with equal source/load impedances
+    require ODD resonator counts (3, 5, 7, 9). For even orders, the
+    final g-value g_{n+1} ≠ 1, meaning optimal load impedance differs
+    from source (e.g., g_{n+1}=1.98 for 2nd order 0.5dB ripple requires
+    ~99Ω load with 50Ω source). Use Butterworth for even counts with
+    equal terminations, or add impedance transformers for even Chebyshev.
 
     Args:
         n: Number of resonators (3, 5, 7, or 9 - odd only)
