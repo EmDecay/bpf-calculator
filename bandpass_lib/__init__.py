@@ -24,6 +24,9 @@ from .formatting import (
     format_frequency,
     format_capacitance,
     format_inductance,
+    format_json,
+    format_csv,
+    format_quiet,
     display_results,
 )
 
@@ -44,5 +47,8 @@ __all__ = [
     'format_frequency',
     'format_capacitance',
     'format_inductance',
+    'format_json',
+    'format_csv',
+    'format_quiet',
     'display_results',
 ]

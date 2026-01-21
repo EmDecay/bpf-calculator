@@ -370,20 +370,41 @@ def verify_calculations() -> bool:
     return all_pass
 
 
+def resolve_filter_type(alias: str) -> str:
+    """Convert short aliases to full filter type names."""
+    return {'bw': 'butterworth', 'b': 'butterworth',
+            'ch': 'chebyshev', 'c': 'chebyshev'}.get(alias, alias)
+
+
+def resolve_coupling(alias: str) -> str:
+    """Convert short aliases to full coupling type names."""
+    return {'t': 'top', 's': 'shunt'}.get(alias, alias)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Coupled Resonator Bandpass Filter Calculator',
         epilog='''Examples:
-  %(prog)s -t butterworth -f 14.2MHz -b 500kHz -c top -n 5
-  %(prog)s -t chebyshev --fl 14MHz --fh 14.35MHz -c shunt -r 0.5 -n 7
-  %(prog)s -t butterworth -f 7.1MHz -b 300kHz -c top -z 50 --explain''',
+  %(prog)s bw top -f 14.2MHz -b 500kHz -n 5        # positional args
+  %(prog)s ch shunt --fl 14MHz --fh 14.35MHz -n 7  # short aliases
+  %(prog)s bw t -f 7.1MHz -b 300kHz --format json  # JSON output
+  %(prog)s bw top -f 14.2MHz -b 500kHz -q          # quiet mode
+  %(prog)s -t butterworth -c top -f 14.2MHz -b 500kHz  # flags only''',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    # Filter type (required unless --verify)
-    parser.add_argument('-t', '--type',
-                        choices=['butterworth', 'chebyshev'],
-                        help='Filter type: butterworth (any n) or chebyshev (odd n only)')
+    # Positional arguments (optional, fall back to flags)
+    parser.add_argument('filter_type', nargs='?',
+                        choices=['butterworth', 'chebyshev', 'bw', 'ch', 'b', 'c'],
+                        help='Filter type (butterworth/bw or chebyshev/ch)')
+    parser.add_argument('coupling_pos', nargs='?',
+                        choices=['top', 'shunt', 't', 's'],
+                        help='Coupling topology (top/t or shunt/s)')
+
+    # Filter type flag (alternative to positional)
+    parser.add_argument('-t', '--type', dest='type_flag',
+                        choices=['butterworth', 'chebyshev', 'bw', 'ch', 'b', 'c'],
+                        help='Filter type (alternative to positional)')
 
     # Frequency input method 1: center + bandwidth
     parser.add_argument('-f', '--frequency',
@@ -397,10 +418,10 @@ def main():
     parser.add_argument('--fh', '--f-high', dest='f_high',
                         help='Upper cutoff frequency (e.g., 14.35MHz)')
 
-    # Coupling topology (required unless --verify or --explain)
-    parser.add_argument('-c', '--coupling',
-                        choices=['top', 'shunt'],
-                        help='Coupling topology: top (series) or shunt (parallel)')
+    # Coupling topology flag (alternative to positional)
+    parser.add_argument('-c', '--coupling', dest='coupling_flag',
+                        choices=['top', 'shunt', 't', 's'],
+                        help='Coupling topology (alternative to positional)')
 
     # Other parameters
     parser.add_argument('-z', '--impedance', default='50',
@@ -418,6 +439,10 @@ def main():
     # Output options
     parser.add_argument('--raw', action='store_true',
                         help='Output raw values in scientific notation')
+    parser.add_argument('-q', '--quiet', action='store_true',
+                        help='Output only component values (no header/diagram)')
+    parser.add_argument('--format', choices=['table', 'json', 'csv'],
+                        default='table', help='Output format (default: table)')
     parser.add_argument('--explain', action='store_true',
                         help='Explain how the selected filter type works')
     parser.add_argument('--verify', action='store_true',
@@ -430,21 +455,29 @@ def main():
         success = verify_calculations()
         sys.exit(0 if success else 1)
 
+    # Merge positional and flag arguments
+    filter_type = args.filter_type or args.type_flag
+    coupling = args.coupling_pos or args.coupling_flag
+
     # Handle --explain (exit early)
     if args.explain:
-        if args.type is None:
-            parser.error('--explain requires -t/--type')
-        if args.type == 'butterworth':
+        if filter_type is None:
+            parser.error('--explain requires filter type')
+        resolved_type = resolve_filter_type(filter_type)
+        if resolved_type == 'butterworth':
             print(BUTTERWORTH_BANDPASS_EXPLANATION)
         else:
             print(CHEBYSHEV_BANDPASS_EXPLANATION)
         sys.exit(0)
 
     # Validate required arguments for calculation
-    if args.type is None:
-        parser.error('the following arguments are required: -t/--type')
-    if args.coupling is None:
-        parser.error('the following arguments are required: -c/--coupling')
+    if filter_type is None:
+        parser.error('Filter type required (positional or -t/--type)')
+    if coupling is None:
+        parser.error('Coupling topology required (positional or -c/--coupling)')
+
+    filter_type = resolve_filter_type(filter_type)
+    coupling = resolve_coupling(coupling)
 
     # Parse and validate
     try:
@@ -452,7 +485,7 @@ def main():
         z0 = parse_impedance(args.impedance)
         if args.q_safety <= 0:
             raise ValueError("Q safety factor must be positive")
-        warnings = validate_inputs(f0, bw, z0, args.resonators, args.type, args.ripple, args.coupling)
+        warnings = validate_inputs(f0, bw, z0, args.resonators, filter_type, args.ripple, coupling)
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -468,9 +501,9 @@ def main():
             bw=bw,
             z0=z0,
             n_resonators=args.resonators,
-            filter_type=args.type,
-            coupling=args.coupling,
-            ripple_db=args.ripple if args.type == 'chebyshev' else 0.5,
+            filter_type=filter_type,
+            coupling=coupling,
+            ripple_db=args.ripple if filter_type == 'chebyshev' else 0.5,
             q_safety=args.q_safety
         )
     except ValueError as e:
@@ -482,7 +515,7 @@ def main():
     result['f_high'] = f_high
 
     # Display results
-    display_results(result, raw=args.raw)
+    display_results(result, raw=args.raw, output_format=args.format, quiet=args.quiet)
 
 
 if __name__ == '__main__':

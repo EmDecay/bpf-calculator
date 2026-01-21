@@ -29,40 +29,57 @@ cd bpf-calculator
 ### Basic Syntax
 
 ```bash
-./bandpass-filter.py -t <type> -f <freq> -b <bandwidth> -c <topology> -n <resonators>
+./bandpass-filter.py <type> <topology> -f <freq> -b <bandwidth> [options]
 ```
 
 ### Examples
 
 **5-pole Butterworth for 20m amateur band:**
 ```bash
-./bandpass-filter.py -t butterworth -f 14.2MHz -b 500kHz -c top -n 5
+./bandpass-filter.py bw top -f 14.2MHz -b 500kHz -n 5
 ```
 
 **7-pole Chebyshev with 0.5dB ripple:**
 ```bash
-./bandpass-filter.py -t chebyshev --fl 14MHz --fh 14.35MHz -c shunt -r 0.5 -n 7
+./bandpass-filter.py ch shunt --fl 14MHz --fh 14.35MHz -r 0.5 -n 7
 ```
 
 **With custom impedance and Q safety factor:**
 ```bash
-./bandpass-filter.py -t butterworth -f 7.1MHz -b 300kHz -c top -z 75 --q-safety 2.5 -n 5
+./bandpass-filter.py bw t -f 7.1MHz -b 300kHz -z 75 --q-safety 2.5 -n 5
+```
+
+### Output Formats
+
+```bash
+# JSON output (for scripting)
+./bandpass-filter.py bw top -f 14.2MHz -b 500kHz --format json
+
+# CSV output (for spreadsheets)
+./bandpass-filter.py bw top -f 14.2MHz -b 500kHz --format csv
+
+# Quiet mode (values only)
+./bandpass-filter.py bw top -f 14.2MHz -b 500kHz -q
 ```
 
 ### Command-Line Options
 
 | Option | Description |
 |--------|-------------|
-| `-t, --type` | Filter type: `butterworth` or `chebyshev` |
+| `type` | Filter type: `butterworth`/`bw` or `chebyshev`/`ch` (positional) |
+| `topology` | Coupling: `top`/`t` (series) or `shunt`/`s` (parallel) (positional) |
+| `-t, --type` | Filter type (flag alternative to positional) |
+| `-c, --coupling` | Topology (flag alternative to positional) |
 | `-f, --frequency` | Center frequency (e.g., `14.2MHz`) |
 | `-b, --bandwidth` | 3dB bandwidth (e.g., `500kHz`) |
 | `--fl, --f-low` | Lower cutoff frequency (alternative to -f/-b) |
 | `--fh, --f-high` | Upper cutoff frequency (alternative to -f/-b) |
-| `-c, --coupling` | Topology: `top` (series) or `shunt` (parallel) |
 | `-n, --resonators` | Number of resonators: 2-9 (default: 2) |
 | `-z, --impedance` | System impedance (default: 50 ohms) |
 | `-r, --ripple` | Chebyshev ripple: 0.1, 0.5, or 1.0 dB (default: 0.5) |
 | `--q-safety` | Q safety factor multiplier (default: 2.0) |
+| `-q, --quiet` | Output only component values (no header/diagram) |
+| `--format` | Output format: `table` (default), `json`, or `csv` |
 | `--raw` | Output raw values in scientific notation |
 | `--explain` | Explain how the selected filter type works |
 | `--verify` | Run calculation verification tests |

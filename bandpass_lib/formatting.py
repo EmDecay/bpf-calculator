@@ -4,6 +4,10 @@ Output formatting for coupled resonator bandpass filters.
 Contains unit formatters and display functions for filter results.
 """
 
+import csv
+import io
+import json
+
 
 def _format_with_units(value: float, units: list[tuple[float, str]], precision: str = ".4g") -> str:
     """Generic formatter for values with unit suffixes."""
@@ -34,6 +38,78 @@ def format_inductance(value_henries: float) -> str:
     return _format_with_units(value_henries, [
         (1, 'H'), (1e-3, 'mH'), (1e-6, 'µH'), (1e-9, 'nH')
     ], ".2f")
+
+
+def format_json(result: dict) -> str:
+    """Format results as JSON."""
+    output = {
+        'filter_type': result['filter_type'],
+        'coupling': result['coupling'],
+        'center_frequency_hz': result['f0'],
+        'bandwidth_hz': result['bw'],
+        'f_low_hz': result['f_low'],
+        'f_high_hz': result['f_high'],
+        'fractional_bw': result['fbw'],
+        'impedance_ohms': result['z0'],
+        'n_resonators': result['n_resonators'],
+        'q_min': result['q_min'],
+        'components': {
+            'tank_capacitors': [{'name': f'Cp{i+1}', 'value_farads': v}
+                               for i, v in enumerate(result['c_tank'])],
+            'inductors': [{'name': f'L{i+1}', 'value_henries': result['L_resonant']}
+                         for i in range(result['n_resonators'])],
+            'coupling_capacitors': [{'name': f'Cs{i+1}{i+2}', 'value_farads': v}
+                                   for i, v in enumerate(result['c_coupling'])]
+        },
+        'external_q': {
+            'input': result['qe_in'],
+            'output': result['qe_out']
+        }
+    }
+    if result.get('ripple_db') is not None:
+        output['ripple_db'] = result['ripple_db']
+    return json.dumps(output, indent=2)
+
+
+def format_csv(result: dict) -> str:
+    """Format results as CSV."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Component', 'Value', 'Unit'])
+    for i, v in enumerate(result['c_tank']):
+        formatted = format_capacitance(v)
+        val, unit = formatted.rsplit(' ', 1)
+        writer.writerow([f'Cp{i+1}', val, unit])
+    for i in range(result['n_resonators']):
+        formatted = format_inductance(result['L_resonant'])
+        val, unit = formatted.rsplit(' ', 1)
+        writer.writerow([f'L{i+1}', val, unit])
+    for i, v in enumerate(result['c_coupling']):
+        formatted = format_capacitance(v)
+        val, unit = formatted.rsplit(' ', 1)
+        writer.writerow([f'Cs{i+1}{i+2}', val, unit])
+    return output.getvalue()
+
+
+def format_quiet(result: dict, raw: bool = False) -> str:
+    """Format results as minimal text (values only)."""
+    lines = []
+    for i, v in enumerate(result['c_tank']):
+        if raw:
+            lines.append(f"Cp{i+1}: {v:.6e} F")
+        else:
+            lines.append(f"Cp{i+1}: {format_capacitance(v)}")
+    for i in range(result['n_resonators']):
+        if raw:
+            lines.append(f"L{i+1}: {result['L_resonant']:.6e} H")
+        else:
+            lines.append(f"L{i+1}: {format_inductance(result['L_resonant'])}")
+    for i, v in enumerate(result['c_coupling']):
+        if raw:
+            lines.append(f"Cs{i+1}{i+2}: {v:.6e} F")
+        else:
+            lines.append(f"Cs{i+1}{i+2}: {format_capacitance(v)}")
+    return '\n'.join(lines)
 
 
 def _print_top_c_diagram(n: int) -> None:
@@ -186,14 +262,27 @@ def _print_shunt_c_diagram(n: int) -> None:
     print(gnd)
 
 
-def display_results(result: dict, raw: bool = False) -> None:
+def display_results(result: dict, raw: bool = False,
+                    output_format: str = 'table', quiet: bool = False) -> None:
     """
     Display calculated filter component values.
 
     Args:
         result: Dict from calculate_bandpass_filter()
         raw: If True, display values in scientific notation
+        output_format: 'table', 'json', or 'csv'
+        quiet: If True, output only component values (no header/diagram)
     """
+    if output_format == 'json':
+        print(format_json(result))
+        return
+    if output_format == 'csv':
+        print(format_csv(result), end='')
+        return
+    if quiet:
+        print(format_quiet(result, raw))
+        return
+
     coupling_name = "Top-C (Series)" if result['coupling'] == 'top' else "Shunt-C (Parallel)"
     title = f"{result['filter_type'].title()} Coupled Resonator Bandpass Filter"
 
