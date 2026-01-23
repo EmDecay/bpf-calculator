@@ -1,10 +1,10 @@
 # Coupled Resonator Bandpass Filter Calculator
 
-A command-line tool for calculating component values for coupled resonator bandpass filters. Supports Top-C (series) and Shunt-C (parallel) coupling topologies with Butterworth or Chebyshev responses.
+A command-line tool for calculating component values for coupled resonator bandpass filters. Supports Top-C (series) and Shunt-C (parallel) coupling topologies with Butterworth, Chebyshev, or Bessel responses.
 
 ## Features
 
-- **Filter Types**: Butterworth (any order) and Chebyshev (odd orders: 3, 5, 7, 9)
+- **Filter Types**: Butterworth (any order), Chebyshev (odd orders: 3, 5, 7, 9), and Bessel (any order)
 - **Topologies**: Top-C (series coupling) and Shunt-C (parallel coupling)
 - **Resonators**: 2-9 LC tank circuits
 - **Chebyshev Ripple**: 0.1, 0.5, or 1.0 dB options
@@ -44,6 +44,11 @@ cd bpf-calculator
 ./bandpass-filter.py ch shunt --fl 14MHz --fh 14.35MHz -r 0.5 -n 7
 ```
 
+**5-pole Bessel for linear phase (pulse/transient preservation):**
+```bash
+./bandpass-filter.py bs top -f 14.2MHz -b 500kHz -n 5
+```
+
 **With custom impedance and Q safety factor:**
 ```bash
 ./bandpass-filter.py bw t -f 7.1MHz -b 300kHz -z 75 --q-safety 2.5 -n 5
@@ -66,7 +71,7 @@ cd bpf-calculator
 
 | Option | Description |
 |--------|-------------|
-| `type` | Filter type: `butterworth`/`bw` or `chebyshev`/`ch` (positional) |
+| `type` | Filter type: `butterworth`/`bw`, `chebyshev`/`ch`, or `bessel`/`bs` (positional) |
 | `topology` | Coupling: `top`/`t` (series) or `shunt`/`s` (parallel) (positional) |
 | `-t, --type` | Filter type (flag alternative to positional) |
 | `-c, --coupling` | Topology (flag alternative to positional) |

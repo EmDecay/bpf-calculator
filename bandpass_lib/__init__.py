@@ -8,8 +8,10 @@ Components:
 
 from .calculations import (
     CHEBYSHEV_G_VALUES,
+    BESSEL_G_VALUES,
     calculate_butterworth_g_values,
     get_chebyshev_g_values,
+    get_bessel_g_values,
     calculate_coupling_coefficients,
     calculate_external_q,
     calculate_resonator_components,
@@ -33,8 +35,10 @@ from .formatting import (
 __all__ = [
     # Calculations
     'CHEBYSHEV_G_VALUES',
+    'BESSEL_G_VALUES',
     'calculate_butterworth_g_values',
     'get_chebyshev_g_values',
+    'get_bessel_g_values',
     'calculate_coupling_coefficients',
     'calculate_external_q',
     'calculate_resonator_components',

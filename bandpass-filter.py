@@ -5,7 +5,7 @@ Coupled Resonator Bandpass Filter Calculator
 Calculates component values for coupled resonator bandpass filters with
 Top-C (series) or Shunt-C (parallel) coupling topologies.
 
-Supports Butterworth and Chebyshev responses with 2-9 resonators.
+Supports Butterworth, Chebyshev, and Bessel responses with 2-9 resonators.
 
 Written by Matt N3AR (with AI coding assistance)
 
@@ -97,6 +97,46 @@ transformers for matched 50-ohm systems. For even resonator counts, use Butterwo
 
 Choose Chebyshev when you need sharp rejection of nearby interfering signals and
 can tolerate small passband ripple.
+"""
+
+
+BESSEL_BANDPASS_EXPLANATION = """
+Bessel (Thomson) Bandpass Filter Explained
+==========================================
+
+A bandpass filter allows signals within a specific frequency range to pass through
+while blocking frequencies outside that range. This calculator designs "coupled
+resonator" filters - a series of LC tank circuits connected by coupling capacitors.
+
+The Bessel filter (also called Thomson filter) is designed for maximally-flat
+group delay, which means all frequencies within the passband experience the same
+time delay. This results in linear phase response - the filter preserves the
+shape of signals passing through it.
+
+This makes Bessel bandpass filters ideal for:
+  - Pulse and transient applications where waveform shape matters
+  - Digital communications where timing relationships must be preserved
+  - SSB/CW reception where phase coherence affects audio quality
+  - Any application where overshoot and ringing are unacceptable
+
+The tradeoff is that Bessel filters have the gentlest rolloff of the three types.
+They don't attenuate unwanted frequencies as aggressively as Butterworth or
+Chebyshev filters. If sharp selectivity is your priority, choose one of those.
+
+Coupled resonator filters use LC "tanks" tuned to the center frequency. The
+coupling capacitors between tanks determine bandwidth and response shape. More
+resonators give steeper skirts but require more components.
+
+Key parameters:
+  - Center frequency (f0): The middle of your passband
+  - Bandwidth (BW): The width of the passband (3dB points)
+  - Fractional BW: BW/f0 - keep below 40% for accurate results
+
+Component Q requirement: Inductors must have unloaded Q greater than (f0/BW)*2
+for acceptable insertion loss.
+
+Choose Bessel when signal integrity and waveform preservation are more important
+than sharp frequency selectivity.
 """
 
 
@@ -373,7 +413,8 @@ def verify_calculations() -> bool:
 def resolve_filter_type(alias: str) -> str:
     """Convert short aliases to full filter type names."""
     return {'bw': 'butterworth', 'b': 'butterworth',
-            'ch': 'chebyshev', 'c': 'chebyshev'}.get(alias, alias)
+            'ch': 'chebyshev', 'c': 'chebyshev',
+            'bs': 'bessel'}.get(alias, alias)
 
 
 def resolve_coupling(alias: str) -> str:
@@ -395,15 +436,15 @@ def main():
 
     # Positional arguments (optional, fall back to flags)
     parser.add_argument('filter_type', nargs='?',
-                        choices=['butterworth', 'chebyshev', 'bw', 'ch', 'b', 'c'],
-                        help='Filter type (butterworth/bw or chebyshev/ch)')
+                        choices=['butterworth', 'chebyshev', 'bessel', 'bw', 'ch', 'bs', 'b', 'c'],
+                        help='Filter type (butterworth/bw, chebyshev/ch, or bessel/bs)')
     parser.add_argument('coupling_pos', nargs='?',
                         choices=['top', 'shunt', 't', 's'],
                         help='Coupling topology (top/t or shunt/s)')
 
     # Filter type flag (alternative to positional)
     parser.add_argument('-t', '--type', dest='type_flag',
-                        choices=['butterworth', 'chebyshev', 'bw', 'ch', 'b', 'c'],
+                        choices=['butterworth', 'chebyshev', 'bessel', 'bw', 'ch', 'bs', 'b', 'c'],
                         help='Filter type (alternative to positional)')
 
     # Frequency input method 1: center + bandwidth
@@ -466,8 +507,10 @@ def main():
         resolved_type = resolve_filter_type(filter_type)
         if resolved_type == 'butterworth':
             print(BUTTERWORTH_BANDPASS_EXPLANATION)
-        else:
+        elif resolved_type == 'chebyshev':
             print(CHEBYSHEV_BANDPASS_EXPLANATION)
+        else:
+            print(BESSEL_BANDPASS_EXPLANATION)
         sys.exit(0)
 
     # Validate required arguments for calculation

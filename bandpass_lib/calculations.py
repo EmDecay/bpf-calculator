@@ -13,6 +13,21 @@ References:
 import math
 
 
+# Bessel normalized g-values for orders 2-9 (standard filter design tables)
+# Source: Zverev "Handbook of Filter Synthesis", Matthaei/Young/Jones
+# Bessel provides maximally-flat group delay (linear phase response)
+BESSEL_G_VALUES = {
+    2: [0.5755, 2.1478],
+    3: [0.3374, 0.9705, 2.2034],
+    4: [0.2334, 0.6725, 1.0815, 2.2404],
+    5: [0.1743, 0.5072, 0.8040, 1.1110, 2.2582],
+    6: [0.1365, 0.4002, 0.6392, 0.8538, 1.1126, 2.2645],
+    7: [0.1106, 0.3259, 0.5249, 0.7020, 0.8690, 1.1052, 2.2659],
+    8: [0.0919, 0.2719, 0.4409, 0.5936, 0.7303, 0.8695, 1.0956, 2.2656],
+    9: [0.0780, 0.2313, 0.3770, 0.5108, 0.6306, 0.7407, 0.8639, 1.0863, 2.2649],
+}
+
+
 # Chebyshev g-values VERIFIED against RF Cafe, LibreTexts, Zverev (Phase 0 research)
 # Source: plans/reports/researcher-260119-0851-chebyshev-gvalues.md
 CHEBYSHEV_G_VALUES = {
@@ -98,6 +113,29 @@ def get_chebyshev_g_values(n: int, ripple_db: float) -> list[float]:
             f"Got {n}. Use Butterworth for even counts."
         )
     return CHEBYSHEV_G_VALUES[ripple_db][n].copy()
+
+
+def get_bessel_g_values(n: int) -> list[float]:
+    """
+    Get Bessel (Thomson) prototype g-values from lookup table.
+
+    Bessel filters provide maximally-flat group delay (linear phase response),
+    ideal for pulse/transient applications where waveform preservation matters.
+
+    Args:
+        n: Number of resonators (2-9)
+
+    Returns:
+        List of g-values [g1, g2, ..., gn]
+
+    Raises:
+        ValueError: If n not in table (2-9)
+
+    Reference: Zverev "Handbook of Filter Synthesis" (1967)
+    """
+    if n not in BESSEL_G_VALUES:
+        raise ValueError(f"Bessel g-values only available for 2-9 resonators, got {n}")
+    return BESSEL_G_VALUES[n].copy()
 
 
 def calculate_coupling_coefficients(g_values: list[float], fbw: float) -> list[float]:
@@ -354,8 +392,8 @@ def calculate_bandpass_filter(f0: float, bw: float, z0: float, n_resonators: int
         raise ValueError("Impedance must be positive")
     if not 2 <= n_resonators <= 9:
         raise ValueError("Number of resonators must be between 2 and 9")
-    if filter_type not in ['butterworth', 'chebyshev']:
-        raise ValueError("Filter type must be 'butterworth' or 'chebyshev'")
+    if filter_type not in ['butterworth', 'chebyshev', 'bessel']:
+        raise ValueError("Filter type must be 'butterworth', 'chebyshev', or 'bessel'")
     if coupling not in ['top', 'shunt']:
         raise ValueError("Coupling must be 'top' or 'shunt'")
 
@@ -372,8 +410,10 @@ def calculate_bandpass_filter(f0: float, bw: float, z0: float, n_resonators: int
     # Get prototype g-values
     if filter_type == 'butterworth':
         g_values = calculate_butterworth_g_values(n_resonators)
-    else:
+    elif filter_type == 'chebyshev':
         g_values = get_chebyshev_g_values(n_resonators, ripple_db)
+    else:  # bessel
+        g_values = get_bessel_g_values(n_resonators)
 
     # Calculate coupling coefficients and external Q
     k_values = calculate_coupling_coefficients(g_values, fbw)
