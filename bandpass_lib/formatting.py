@@ -8,6 +8,13 @@ import csv
 import io
 import json
 
+from .eseries import match_component
+from .transfer import frequency_sweep
+from .plotting import render_ascii_plot, export_json as plot_export_json, export_csv as plot_export_csv
+
+# Default number of points for frequency sweep plots
+PLOT_POINTS = 61
+
 
 def _format_with_units(value: float, units: list[tuple[float, str]], precision: str = ".4g") -> str:
     """Generic formatter for values with unit suffixes."""
@@ -262,8 +269,27 @@ def _print_shunt_c_diagram(n: int) -> None:
     print(gnd)
 
 
+def _format_eseries_match(value: float, series: str, unit_formatter) -> list[str]:
+    """Format E-series match for a component value."""
+    match = match_component(value, series)
+    lines = []
+    formatted = unit_formatter(match.single_value)
+    error_sign = '+' if match.single_value > value else '-' if match.single_value < value else ''
+    lines.append(f"  -> {formatted} ({series}) {error_sign}{abs(match.single_error_pct):.1f}%")
+    if match.parallel and match.parallel_error_pct < match.single_error_pct:
+        p1, p2 = match.parallel
+        p1_fmt = unit_formatter(p1).split()[0]
+        p2_fmt = unit_formatter(p2)
+        err_sign = '+' if match.parallel_value > value else '-' if match.parallel_value < value else ''
+        lines.append(f"     {p1_fmt} || {p2_fmt} {err_sign}{abs(match.parallel_error_pct):.1f}%")
+    return lines
+
+
 def display_results(result: dict, raw: bool = False,
-                    output_format: str = 'table', quiet: bool = False) -> None:
+                    output_format: str = 'table', quiet: bool = False,
+                    eseries: str | None = 'E24',
+                    show_plot: bool = False,
+                    plot_data: str | None = None) -> None:
     """
     Display calculated filter component values.
 
@@ -272,7 +298,26 @@ def display_results(result: dict, raw: bool = False,
         raw: If True, display values in scientific notation
         output_format: 'table', 'json', or 'csv'
         quiet: If True, output only component values (no header/diagram)
+        eseries: E-series for matching (None to disable)
+        show_plot: Show ASCII frequency response
+        plot_data: Export plot data as 'json' or 'csv'
     """
+    # Handle plot data export first (standalone output)
+    if plot_data:
+        sweep = frequency_sweep(
+            result['f0'], result['bw'], result['n_resonators'],
+            result['filter_type'],
+            ripple_db=result.get('ripple_db') or 0.5,
+            points=PLOT_POINTS
+        )
+        if plot_data == 'json':
+            print(plot_export_json(sweep, result['f0'], result['bw'],
+                                   result['filter_type'], result['n_resonators'],
+                                   result.get('ripple_db')))
+        else:
+            print(plot_export_csv(sweep))
+        return
+
     if output_format == 'json':
         print(format_json(result))
         return
@@ -352,4 +397,32 @@ def display_results(result: dict, raw: bool = False,
     # External Q values
     print(f"\nExternal Q (input):  {result['qe_in']:.2f}")
     print(f"External Q (output): {result['qe_out']:.2f}")
+
+    # E-series matching
+    if eseries and not raw:
+        print(f"\nE-Series Matching ({eseries}):")
+        print(f"{'─' * 40}")
+        for i, ct in enumerate(result['c_tank']):
+            print(f"Cp{i+1}: {format_capacitance(ct)}")
+            for line in _format_eseries_match(ct, eseries, format_capacitance):
+                print(line)
+        for i, cs in enumerate(result['c_coupling']):
+            print(f"Cs{i+1}{i+2}: {format_capacitance(cs)}")
+            for line in _format_eseries_match(cs, eseries, format_capacitance):
+                print(line)
+        print(f"L: {format_inductance(result['L_resonant'])}")
+        for line in _format_eseries_match(result['L_resonant'], eseries, format_inductance):
+            print(line)
+
+    # Frequency response plot
+    if show_plot:
+        sweep = frequency_sweep(
+            result['f0'], result['bw'], result['n_resonators'],
+            result['filter_type'],
+            ripple_db=result.get('ripple_db') or 0.5,
+            points=PLOT_POINTS
+        )
+        title = f"{result['filter_type'].title()} {result['n_resonators']}-pole Response"
+        print(f"\n{render_ascii_plot(sweep, result['f0'], result['bw'], title=title)}")
+
     print()

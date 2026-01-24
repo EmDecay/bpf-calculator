@@ -32,6 +32,29 @@ from .formatting import (
     display_results,
 )
 
+from .eseries import (
+    E_SERIES,
+    ESeriesMatch,
+    find_closest_single,
+    find_parallel_combo,
+    match_component,
+)
+
+from .transfer import (
+    chebyshev_polynomial,
+    magnitude_butterworth,
+    magnitude_chebyshev,
+    magnitude_bessel,
+    magnitude_db,
+    frequency_sweep,
+)
+
+from .plotting import (
+    render_ascii_plot,
+    export_json,
+    export_csv,
+)
+
 __all__ = [
     # Calculations
     'CHEBYSHEV_G_VALUES',
@@ -55,4 +78,21 @@ __all__ = [
     'format_csv',
     'format_quiet',
     'display_results',
+    # E-series matching
+    'E_SERIES',
+    'ESeriesMatch',
+    'find_closest_single',
+    'find_parallel_combo',
+    'match_component',
+    # Transfer functions
+    'chebyshev_polynomial',
+    'magnitude_butterworth',
+    'magnitude_chebyshev',
+    'magnitude_bessel',
+    'magnitude_db',
+    'frequency_sweep',
+    # Plotting
+    'render_ascii_plot',
+    'export_json',
+    'export_csv',
 ]

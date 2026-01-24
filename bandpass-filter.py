@@ -489,6 +489,20 @@ def main():
     parser.add_argument('--verify', action='store_true',
                         help='Run calculation verification tests')
 
+    # Component matching options
+    match_group = parser.add_argument_group('Component Matching')
+    match_group.add_argument('-e', '--eseries', choices=['E12', 'E24', 'E96'],
+                             default='E24', help='E-series for matching (default: E24)')
+    match_group.add_argument('--no-match', action='store_true',
+                             help='Disable E-series matching suggestions')
+
+    # Frequency response options
+    plot_group = parser.add_argument_group('Frequency Response')
+    plot_group.add_argument('--plot', action='store_true',
+                            help='Show ASCII frequency response')
+    plot_group.add_argument('--plot-data', choices=['json', 'csv'],
+                            help='Export frequency response data')
+
     args = parser.parse_args()
 
     # Handle --verify
@@ -558,7 +572,15 @@ def main():
     result['f_high'] = f_high
 
     # Display results
-    display_results(result, raw=args.raw, output_format=args.format, quiet=args.quiet)
+    display_results(
+        result,
+        raw=args.raw,
+        output_format=args.format,
+        quiet=args.quiet,
+        eseries=None if args.no_match else args.eseries,
+        show_plot=args.plot,
+        plot_data=args.plot_data
+    )
 
 
 if __name__ == '__main__':
