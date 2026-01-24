@@ -1,3 +1,5 @@
+This program is being archived; the logic and features have been migrated to https://github.com/EmDecay/rf-filter-calculator
+
 # Coupled Resonator Bandpass Filter Calculator
 
 A command-line tool for calculating component values for coupled resonator bandpass filters. Supports Top-C (series) and Shunt-C (parallel) coupling topologies with Butterworth, Chebyshev, or Bessel responses.
