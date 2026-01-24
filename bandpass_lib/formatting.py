@@ -275,13 +275,13 @@ def _format_eseries_match(value: float, series: str, unit_formatter) -> list[str
     lines = []
     formatted = unit_formatter(match.single_value)
     error_sign = '+' if match.single_value > value else '-' if match.single_value < value else ''
-    lines.append(f"  -> {formatted} ({series}) {error_sign}{abs(match.single_error_pct):.1f}%")
+    lines.append(f"  Nearest Std:  {formatted} ({error_sign}{abs(match.single_error_pct):.1f}%)")
     if match.parallel and match.parallel_error_pct < match.single_error_pct:
         p1, p2 = match.parallel
         p1_fmt = unit_formatter(p1).split()[0]
         p2_fmt = unit_formatter(p2)
         err_sign = '+' if match.parallel_value > value else '-' if match.parallel_value < value else ''
-        lines.append(f"     {p1_fmt} || {p2_fmt} {err_sign}{abs(match.parallel_error_pct):.1f}%")
+        lines.append(f"  Parallel Std: {p1_fmt} || {p2_fmt} ({err_sign}{abs(match.parallel_error_pct):.1f}%)")
     return lines
 
 
@@ -398,21 +398,20 @@ def display_results(result: dict, raw: bool = False,
     print(f"\nExternal Q (input):  {result['qe_in']:.2f}")
     print(f"External Q (output): {result['qe_out']:.2f}")
 
-    # E-series matching
+    # E-series matching (capacitors only - inductors should be wound toroids)
     if eseries and not raw:
-        print(f"\nE-Series Matching ({eseries}):")
-        print(f"{'─' * 40}")
+        print(f"\n{eseries} Standard Capacitor Recommendations")
+        print(f"{'─' * 45}")
+        print("(Calculated values with nearest standard matches)")
+        print()
         for i, ct in enumerate(result['c_tank']):
-            print(f"Cp{i+1}: {format_capacitance(ct)}")
+            print(f"Cp{i+1} Calculated: {format_capacitance(ct)}")
             for line in _format_eseries_match(ct, eseries, format_capacitance):
                 print(line)
         for i, cs in enumerate(result['c_coupling']):
-            print(f"Cs{i+1}{i+2}: {format_capacitance(cs)}")
+            print(f"Cs{i+1}{i+2} Calculated: {format_capacitance(cs)}")
             for line in _format_eseries_match(cs, eseries, format_capacitance):
                 print(line)
-        print(f"L: {format_inductance(result['L_resonant'])}")
-        for line in _format_eseries_match(result['L_resonant'], eseries, format_inductance):
-            print(line)
 
     # Frequency response plot
     if show_plot:
